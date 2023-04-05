@@ -30,7 +30,7 @@ class train_dataset(data.Dataset):
         except OSError:
             return None, None, None
 
-        label_n = np.array(semantic_image)      #将像素值103的目标转为255作二分类
+        label_n = np.array(semantic_image)      #将像素值103的目标转为255作二分类，根据数据集不同做调整
         label = np.zeros(label_n.shape) 
         label[label_n==103] = 255
 
