@@ -1,6 +1,6 @@
-##Semantic segmentation models and training codes for Pytorch.
+## Semantic segmentation models and training codes for Pytorch.
 
-###Prepare Datasets
+### Prepare Datasets
 
 ```
 /data
