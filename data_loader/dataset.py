@@ -20,18 +20,17 @@ class train_dataset(data.Dataset):
         
     def __getitem__(self, index):
         initial_path = os.path.join(self.data_path + '/imgs/', self.list[index])
-        #semantic_path = os.path.join(self.data_path + '/masks/', self.list[index][:-4]+'_instance_color_RGB'+self.list[index][-4:])
         semantic_path = os.path.join(self.data_path + '/masks/', self.list[index])
         assert os.path.exists(semantic_path)
         try:
             initial_image = Image.open(initial_path).convert('RGB')
             # semantic_image = Image.open(semantic_path).point(lambda i: i * 80).convert('RGB')
-            semantic_image = Image.open(semantic_path)                                             # 修改4.22
+            semantic_image = Image.open(semantic_path)                                           
 
         except OSError:
             return None, None, None
 
-        label_n = np.array(semantic_image)
+        label_n = np.array(semantic_image)      #将像素值103的目标转为255作二分类
         label = np.zeros(label_n.shape) 
         label[label_n==103] = 255
 
@@ -39,14 +38,11 @@ class train_dataset(data.Dataset):
 
         semantic_image = Image.fromarray(semantic_image/255)
 
-        initial_image = initial_image.resize((self.size_w, self.size_h), Image.BILINEAR)           # (1024, 1024)
+        initial_image = initial_image.resize((self.size_w, self.size_h), Image.BILINEAR)    
         semantic_image = semantic_image.resize((self.size_w, self.size_h), Image.BILINEAR)
-        # initial_image,semantic_image=data_augment(initial_image,semantic_image)  #4.18添加
+        # initial_image,semantic_image=data_augment(initial_image,semantic_image)  
 
-        # label_n_2 = np.array(semantic_image)      #转换标签像素值 
-        # thr = (label_n_2.max() + label_n_2.min())/2
-        # label_resize = np.uint8(label_n_2 > thr)*255
-        # semantic_image = Image.fromarray(label_resize)
+
 
         ### normalize to [0,1] ###
         #semantic_image = semantic_image+1/2
@@ -62,13 +58,11 @@ class train_dataset(data.Dataset):
         #         if a < 2 / 3:
         #             initial_image = initial_image.transpose(Image.ROTATE_90)
         #             semantic_image = semantic_image.transpose(Image.ROTATE_90)
+        
         to_tensor = transforms.ToTensor()
         initial_image = to_tensor(initial_image)
-        # initial_image = trans_to_tensor(initial_image)
-        # initial_image = initial_image.mul_(2).add_(-1)  # -1 - 1
         semantic_image = to_tensor(semantic_image)
-        # semantic_image = trans_to_tensor(semantic_image)
-        # semantic_image = semantic_image.mul_(2).add_(-1)                      # 修改4.22
+     
         
         return initial_image, semantic_image, self.list[index]
 
