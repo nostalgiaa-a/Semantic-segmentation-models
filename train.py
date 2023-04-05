@@ -17,9 +17,9 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"        #指定GPU
 parser = argparse.ArgumentParser(description='Training a Scattnet model')
 parser.add_argument('--batch_size', type=int, default=4, help='equivalent to instance normalization with batch_size=1')
 parser.add_argument('--input_nc', type=int, default=3)
-parser.add_argument('--output_nc', type=int, default=2)  # 修改4.22 
-parser.add_argument('--num_classes', type=int, default=2)  # 修改4.22                                                                       
-#parser.add_argument('--pretrain', type=bool, default=False, help='whether to load pre-trained model weights')# 修改4.22
+parser.add_argument('--output_nc', type=int, default=2)  
+parser.add_argument('--num_classes', type=int, default=2)                                                                      
+#parser.add_argument('--pretrain', type=bool, default=False, help='whether to load pre-trained model weights')
 parser.add_argument('--epoch', type=int, default=200, help='number of epochs to train for')
 parser.add_argument('--lr', type=float, default=0.001, help='learning rate, default=0.0002')
 parser.add_argument('--beta1', type=float, default=0.9, help='beta1 for adam. default=0.5')
@@ -31,8 +31,8 @@ parser.add_argument('--size_h', type=int, default=256, help='scale image to this
 # parser.add_argument('--flip', type=int, default=1, help='1 for flipping image randomly, 0 for not')
 parser.add_argument('--net', type=str, default='', help='path to pre-trained network')
 parser.add_argument('--netG', type=str, default='', help='weight of pre-trained network')
-parser.add_argument('--train_path', default='/home/data2/xusimin/airplane/data/train', help='path to training images')
-parser.add_argument('--val_path', default='/home/data2/xusimin/airplane/data/val', help='path to validation images')
+parser.add_argument('--train_path', default='./data/train', help='path to training images')
+parser.add_argument('--val_path', default='./data/val', help='path to validation images')
 parser.add_argument('--outfolder', default='./checkpoint', help='folder to output images and model checkpoints')
 parser.add_argument('--save_epoch', default=10, help='path to val images')
 parser.add_argument('--val_step', default=300, help='path to val images')
@@ -52,16 +52,17 @@ if opt.manual_seed is None:
 
 # random.seed(opt.manual_seed)
 
-if torch.cuda.is_available():                         #在需要生成随机数据的实验中，每次实验都需要生成数据。
-    print("gpu cuda is available!")                   #设置随机种子是为了确保每次生成固定的随机数，这就使
-    torch.cuda.manual_seed(opt.manual_seed)           #得每次实验结果显示一致了，有利于实验的比较和改进。
-else:                                                 #使得每次运行该 .py 文件时生成的随机数相同。
+if torch.cuda.is_available():                        
+    print("gpu cuda is available!")                  
+    torch.cuda.manual_seed(opt.manual_seed)           
+else:                                                 
     print("cuda is not available! cpu is available!")
     torch.manual_seed(opt.manual_seed)
 
-cudnn.benchmark = False #输入大小和网络模型不变的情况下可以加速训练 newnew
+cudnn.benchmark = False #输入大小和网络模型不变的情况下可以加速训练
 
-# def weights_init(m):    #pytorch默认使用kaiming正态分布初始化
+#pytorch默认使用kaiming正态分布初始化
+# def weights_init(m):    
 #     class_name = m.__class__.__name__
 #     if class_name.find('Conv') != -1:
 #         m.weight.data.normal_(0.0, 0.02)
@@ -70,14 +71,14 @@ cudnn.benchmark = False #输入大小和网络模型不变的情况下可以加�
 #         m.weight.data.normal_(1.0, 0.02)
 #         #m.bias.data.fill_(0)
 
-# def weights_init(m):     # 初始化权重
+# def weights_init(m):     
 #      if isinstance(m, nn.Conv2d):
 #          torch.nn.init.normal_(m.weight.data, 0.0, 0.02)
 #      elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
 #          torch.nn.init.normal_(m.weight.data, 1.0, 0.02)
 #          torch.nn.init.constant_(m.bias.data, 0.0)
 
-# def weights_init(net):            # 8.25
+# def weights_init(net):           
 #     for m in net.modules():
 #         if isinstance(m,nn.Conv2d):
 #             m.weight.data.normal_(0.0, 0.02)
@@ -87,32 +88,24 @@ cudnn.benchmark = False #输入大小和网络模型不变的情况下可以加�
 
 def main():
     
-    train_datatset_ = train_dataset(opt.train_path, opt.size_w, opt.size_h)  #实现训练数据类
+    train_datatset_ = train_dataset(opt.train_path, opt.size_w, opt.size_h) 
     train_loader = torch.utils.data.DataLoader(dataset=train_datatset_, batch_size=opt.batch_size, shuffle=True,
-                                            num_workers=opt.num_workers)     #载入训练数据
+                                            num_workers=opt.num_workers)     
     val_datatset_ = train_dataset(opt.val_path, opt.size_w, opt.size_h)
-    val_loader = torch.utils.data.DataLoader(dataset=val_datatset_, batch_size=opt.batch_size, shuffle=False,     # 修改4.22
+    val_loader = torch.utils.data.DataLoader(dataset=val_datatset_, batch_size=opt.batch_size, shuffle=False,  
                                             num_workers=opt.num_workers)
     print('train set:{} val set:{}'.format(len(train_datatset_), len(val_datatset_)))
 
     net = network.UNet(opt.input_nc,opt.output_nc)  
     # net = network.SegNet(opt.input_nc,opt.output_nc)  
 
-    # if opt.pretrain:
-    #     net.load_pretrained_weights()
-    #     print("load pretrain")
-    # if opt.pretrain:
-    #     # net.load_pretrained_weights()
-    #     resnet18(pretrained=True)
-    #     print("load pretrain")
-
-    if opt.net != '':                  #有预训练权重
+    if opt.net != '':                
         net.load_state_dict(torch.load(opt.netG))
-    # else:                               #没有预训练权重
-    #     net.apply(weights_init)
+#     else:                           
+#         net.apply(weights_init)
 
-    initial_image = torch.FloatTensor(opt.batch_size, opt.input_nc, opt.size_w, opt.size_h)             # 将变量转化为浮点型32位
-    semantic_image = torch.FloatTensor(opt.batch_size, opt.output_nc, opt.size_w, opt.size_h)  #input_nc = 1        
+    initial_image = torch.FloatTensor(opt.batch_size, opt.input_nc, opt.size_w, opt.size_h)            
+    semantic_image = torch.FloatTensor(opt.batch_size, opt.output_nc, opt.size_w, opt.size_h)       
     initial_image = Variable(initial_image)
     semantic_image = Variable(semantic_image)
     if opt.cuda:
@@ -120,7 +113,7 @@ def main():
         ###########   GLOBAL VARIABLES   ###########
         initial_image = initial_image.cuda()
         semantic_image = semantic_image.cuda()
-    if opt.num_GPU > 1:                 #  ???只用environ设置是否可以？
+    if opt.num_GPU > 1:                
         net=nn.DataParallel(net)
 
 
@@ -128,7 +121,7 @@ def main():
     # criterion = nn.BCELoss() 
     from loss.Binary_CE import BCE_Loss
     # from loss.focal_loss import FocalLossV2
-    criterion = BCE_Loss(bcekwargs={'reduction':'mean'})     # 修改4.22
+    criterion = BCE_Loss(bcekwargs={'reduction':'mean'})    
     # criterion = FocalLossV2()
     optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999)) 
     # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=opt.niter, eta_min=1e-8)  
@@ -164,13 +157,13 @@ def main():
             optimizer.step()#update the weight parameters
 
             ### metric ###
-            target = semantic_image.cpu().numpy()# 修改4.22
+            target = semantic_image.cpu().numpy()
             pred = torch.argmax(semantic_image_pred, 1).cpu().numpy()   #2通道时
             metrics.update(target, pred)
             score = metrics.get_results()
                                                 
 
-        iou_unchange,iou_change = score['Class IoU']                                           # 修改4.22                                        # 修改4.22
+        iou_unchange,iou_change = score['Class IoU']                                       
         iou = iou_change
         miou =  score['Mean IoU']
         mrecall = score['M_recall']
@@ -188,13 +181,10 @@ def main():
 
                 initial_image.resize_(initial_image_.size()).copy_(initial_image_)
                 semantic_image.resize_(semantic_image_.size()).copy_(semantic_image_)
-                semantic_image_pred= net(initial_image) # 7.19 7.23
+                semantic_image_pred= net(initial_image) 
 
                 ### metric ###
-                target = semantic_image.cpu().numpy()# 修改4.22
-                # pred_img=semantic_image_pred.detach().cpu().numpy() 
-                # pred = np.zeros(pred_img.shape)  #100 100
-                # pred[pred_img >= 0.5] = 1 # 100 
+                target = semantic_image.cpu().numpy()
                 pred = torch.argmax(semantic_image_pred, 1).cpu().numpy()
                 metrics.update(target, pred)
                 score = metrics.get_results()
