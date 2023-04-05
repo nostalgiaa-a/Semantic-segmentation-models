@@ -6,17 +6,13 @@
 /data
     /train 
         /imgs
-          1.png
-          2.png
+          xxx.png
           ...
         /masks
-          1.png
-          2.png
+          xxx.png
           ...
     /val
         /imgs
-          ...
         /masks
-          ...
 
 ```
